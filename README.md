@@ -32,8 +32,7 @@ From the project root:
 docker compose up --build
 ```
 
-This starts MongoDB, the backend on port 3000, and the frontend on port
-5173. Open http://localhost:5173.
+This starts MongoDB, the backend on port 3000 and the frontend on port 5173. Open http://localhost:5173.
 
 ### Without Docker
 
@@ -41,7 +40,7 @@ In one terminal:
 
 ```
 cd backend
-cp .env.example .env
+cp .env.example .env (Put the actual values for JWT_ACCESS_SECRET and JWT_REFRESH_SECRET)
 npm install
 npm run dev
 ```
@@ -57,6 +56,8 @@ npm run dev
 ```
 
 Open http://localhost:5173. The Vite dev server proxies `/api` requests to the backend on port 3000 so no extra configuration is needed.
+
+The API is served under `/api/v1` and interactive Swagger documentation is at http://localhost:3000/api-docs.
 
 ### Running the backend tests
 
@@ -76,12 +77,14 @@ gym-saas/
     server.js
     src/
       app.js
-      config/
-      controllers/
-      middleware/
-      models/
-      routes/
+      config/        db connection, swagger spec, env checks
+      controllers/   thin HTTP layer: read the request, call a service
+      middleware/    auth guard, schema validation, error handling
+      models/        Mongoose schemas
+      routes/        index.js mounts the feature routers under /api/v1
+      services/      business logic, free of Express objects
       utils/
+        schemas/     Zod request schemas
       types/
     tests/
   frontend/

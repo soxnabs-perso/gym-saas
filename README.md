@@ -84,7 +84,7 @@ gym-saas/
       routes/        index.js mounts the feature routers under /api/v1
       services/      business logic, free of Express objects
       utils/
-        schemas/     Zod request schemas
+        schemas/     Yup request schemas
       types/
     tests/
   frontend/

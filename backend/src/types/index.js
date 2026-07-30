@@ -8,7 +8,6 @@
  * @property {string} gymName
  * @property {string} fullName
  * @property {string} email
- * @property {string} role
  *
  * @typedef {Object} SessionResponse
  * @property {string} accessToken

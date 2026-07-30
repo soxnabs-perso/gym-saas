@@ -1,12 +1,9 @@
 import { object, string, number } from 'yup';
 
 /**
- * yup's built-in `.trim()` and `.lowercase()` call String methods on whatever
- * value arrives, so an injected object or array throws a TypeError and
- * surfaces as a 500 rather than a validation failure.
- *
- * These helpers normalise only actual strings; anything else falls through
- * untouched to the type check and comes back as a clean 400.
+ * Yup's `.trim()` and `.lowercase()` assume the input is a string. Passing an object or array causes a TypeError
+ * which ends up as a 500 instead of a validation error. These helpers only modify string values. 
+ * Everything else is passed through so the normal type check returns a clean 400
  */
 export const trimmedString = () =>
   string().transform((value) => (typeof value === 'string' ? value.trim() : value));
@@ -17,7 +14,7 @@ export const emailString = () =>
     .email('Email is invalid');
 
 /**
- * Person names, shared by the gym manager signing up and the customers they add so both are held to the same rule.
+ * Person names, shared by the gym manager signing up and the customers they add so both are held to the same rule
  */
 export const personName = () =>
   trimmedString()
@@ -26,7 +23,7 @@ export const personName = () =>
     .max(70, 'Name must be at most 70 characters long');
 
 /**
- * A 24 character hex string. Validating this up front turns what would be a Mongoose CastError into a clean 400.
+ * A 24 character hex string. Validating this up front turns what would be a Mongoose CastError into a clean 400
  */
 const objectIdBase = string().matches(/^[0-9a-fA-F]{24}$/, 'Must be a valid id');
 

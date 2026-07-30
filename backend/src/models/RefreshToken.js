@@ -1,7 +1,5 @@
 import mongoose from 'mongoose';
 
-// Storing refresh tokens (hashed) lets us revoke a single session on logout
-// or "log out everywhere", instead of trusting a signed JWT until it expires.
 const refreshTokenSchema = new mongoose.Schema(
   {
     user: {
@@ -30,7 +28,6 @@ const refreshTokenSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Mongo TTL index: documents are auto deleted once expiresAt is in the past
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model('RefreshToken', refreshTokenSchema);

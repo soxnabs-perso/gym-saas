@@ -28,11 +28,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
-    role: {
-      type: String,
-      enum: ['owner', 'manager'],
-      default: 'owner',
-    },
   },
   { timestamps: true }
 );
@@ -45,9 +40,6 @@ userSchema.statics.hashPassword = function hashPassword(plain) {
   return bcrypt.hash(plain, 12);
 };
 
-// A throwaway hash with the same cost factor as a real one. Comparing against
-// it when the email is unknown keeps failed logins the same duration whether
-// or not the account exists, so response time cannot be used to enumerate users.
 const DUMMY_HASH = bcrypt.hashSync('unused-placeholder-password', 12);
 
 userSchema.statics.compareDummyPassword = function compareDummyPassword(candidate) {

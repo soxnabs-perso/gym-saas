@@ -12,6 +12,7 @@ import {
   createInvoiceSchema,
   updateInvoiceStatusSchema,
   listInvoicesQuerySchema,
+  summaryQuerySchema,
 } from '../utils/schemas/invoice.schema.js';
 import { idParamSchema } from '../utils/schemas/common.schema.js';
 
@@ -31,9 +32,16 @@ router.use(protect);
  * /invoices/dashboard/summary:
  *   get:
  *     summary: Overview totals for the dashboard
- *     description: Customer count, revenue collected this month, and outstanding balance.
+ *     description: >
+ *       Active customer count, revenue collected within the range (by payment
+ *       date) and the amount still outstanding in it (by due date).
  *     tags: [Invoices]
  *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: range
+ *         schema: { type: string, enum: [month, quarter, year], default: month }
+ *         description: Calendar period to report on
  *     responses:
  *       200:
  *         description: Summary totals
@@ -42,13 +50,15 @@ router.use(protect);
  *             schema:
  *               type: object
  *               properties:
+ *                 range:             { type: string, enum: [month, quarter, year] }
+ *                 from:              { type: string, format: date-time }
+ *                 to:                { type: string, format: date-time }
  *                 totalCustomers:    { type: integer }
- *                 revenueThisMonth:  { type: number }
+ *                 revenue:           { type: number }
  *                 outstandingAmount: { type: number }
  *                 outstandingCount:  { type: integer }
  */
-// Declared before '/:id' style routes so 'dashboard' is never read as an id.
-router.get('/dashboard/summary', dashboardSummary);
+router.get('/dashboard/summary', validate({ query: summaryQuerySchema }), dashboardSummary);
 
 /**
  * @swagger
@@ -99,8 +109,13 @@ router.post('/', validate({ body: createInvoiceSchema }), createInvoice);
  *             required: [status]
  *             properties:
  *               status: { type: string, enum: [pending, paid, overdue, cancelled] }
+ *               cancellationReason:
+ *                 type: string
+ *                 maxLength: 300
+ *                 description: Required when status is cancelled; ignored otherwise
  *     responses:
  *       200: { description: Updated invoice }
+ *       400: { description: Cancelling without a reason }
  *       404: { description: Invoice not found }
  */
 router.patch(

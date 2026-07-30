@@ -14,7 +14,7 @@ export async function updateInvoiceStatus(req, res) {
   const invoice = await invoiceService.updateInvoiceStatus(
     req.userId,
     req.validated.params.id,
-    req.validated.body.status
+    req.validated.body
   );
   return res.json({ invoice });
 }
@@ -25,6 +25,6 @@ export async function deleteInvoice(req, res) {
 }
 
 export async function dashboardSummary(req, res) {
-  const summary = await invoiceService.getDashboardSummary(req.userId);
+  const summary = await invoiceService.getDashboardSummary(req.userId, req.validated.query);
   return res.json(summary);
 }

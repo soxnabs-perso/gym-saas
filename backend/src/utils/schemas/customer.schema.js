@@ -54,10 +54,7 @@ const subscriptionFee = number()
 
 export const createCustomerSchema = object({
   fullName: personName().required('Customer name is required'),
-  phone: trimmedString()
-    .min(1, 'Phone number is required')
-    .max(40)
-    .required('Phone number is required'),
+  phone: trimmedString().max(40).required('Phone number is required'),
   email: optionalEmail,
   membershipPlan: string().oneOf(MEMBERSHIP_PLANS).default('monthly'),
   subscriptionFee: subscriptionFee.when('membershipPlan', {

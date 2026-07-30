@@ -24,7 +24,12 @@ export async function updateCustomer(req, res) {
   return res.json({ customer });
 }
 
-export async function deleteCustomer(req, res) {
-  await customerService.deleteCustomer(req.userId, req.validated.params.id);
-  return res.status(204).send();
+export async function archiveCustomer(req, res) {
+  const customer = await customerService.archiveCustomer(req.userId, req.validated.params.id);
+  return res.json({ customer });
+}
+
+export async function restoreCustomer(req, res) {
+  const customer = await customerService.restoreCustomer(req.userId, req.validated.params.id);
+  return res.json({ customer });
 }

@@ -6,7 +6,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from './middleware/rateLimit.middleware.js';
 
 import apiRoutes from './routes/index.js';
 import { specs, swaggerUi } from './config/swagger.js';
@@ -33,11 +33,9 @@ function createApp() {
   app.use(morgan('dev'));
   app.use(
     '/api',
-    rateLimit({
+    createRateLimiter({
       windowMs: 15 * 60 * 1000,
       max: 300,
-      standardHeaders: true,
-      legacyHeaders: false,
     })
   );
 

@@ -33,7 +33,6 @@ const router = express.Router();
 *                   example: '1.0.0'
 */
 router.get('/', 
-    //[RouteAudit('Health Check'), cacheMiddleware], 
   healthCheck
 );
 

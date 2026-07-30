@@ -47,7 +47,7 @@ const INameSchema = personName().required('Name is required');
 const IEmailSchema = emailString().required('Email is required');
 
 export const signupSchema = object({
-  gymName: trimmedString().min(1, 'Gym name is required').max(120).required('Gym name is required'),
+  gymName: trimmedString().max(120).required('Gym name is required'),
   fullName: INameSchema,
   email: IEmailSchema,
   password: IPasswordSchema,

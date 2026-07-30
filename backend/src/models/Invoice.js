@@ -41,9 +41,18 @@ const invoiceSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       required: true,
+      index: true,
     },
     paidAt: {
       type: Date,
+    },
+    cancelledAt: {
+      type: Date,
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: 300,
     },
   },
   { timestamps: true }

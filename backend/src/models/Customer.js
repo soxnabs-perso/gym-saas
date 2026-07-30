@@ -21,12 +21,17 @@ const customerSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
+      required: [true, 'Phone number is required'],
       trim: true,
     },
     membershipPlan: {
       type: String,
       enum: ['monthly', 'quarterly', 'annual', 'pay_as_you_go'],
       default: 'monthly',
+    },
+    subscriptionFee: {
+      type: Number,
+      min: [0, 'Subscription fee cannot be negative'],
     },
     membershipStatus: {
       type: String,
@@ -37,18 +42,15 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    archivedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
 );
 
-// A manager should not have two customers with the exact same email, but any
-// number may have no email at all.
-//
-// `sparse` cannot express that on a compound index: it only skips a document
-// when every indexed field is absent, and `owner` is always set, so each
-// email-less customer was indexed as (owner, null) and the second one
-// collided. A partial index restricts the constraint to documents that
-// actually carry an email.
 customerSchema.index(
   { owner: 1, email: 1 },
   { unique: true, partialFilterExpression: { email: { $type: 'string' } } }

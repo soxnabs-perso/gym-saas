@@ -5,9 +5,15 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - '27017:27017'
+      - '27018:27017'
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   backend:
     build:
@@ -26,12 +32,15 @@ services:
       JWT_REFRESH_EXPIRES_IN_LONG: 30d
       CLIENT_ORIGIN: http://localhost:5173
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
     restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://backend:3000
     ports:
       - '5173:5173'
     depends_on:

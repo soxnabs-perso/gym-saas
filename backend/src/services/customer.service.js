@@ -6,11 +6,13 @@ import { ApiError } from '../utils/errors.js';
  * another's records — the isolation is enforced in the query itself rather
  * than filtered out afterwards.
  */
-export async function listCustomers(ownerId, { page, limit, status, search }) {
+export async function listCustomers(ownerId, { page, limit, status, search, archived }) {
   const filter = { owner: ownerId };
+
+  filter.archivedAt = archived ? { $ne: null } : null;
+
   if (status) filter.membershipStatus = status;
   if (search) {
-    // Escaped so a value like ".*" cannot turn into a catastrophic regex.
     filter.fullName = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
   }
 
@@ -26,6 +28,7 @@ export async function listCustomers(ownerId, { page, limit, status, search }) {
   return { customers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
 }
 
+/** Archived customers are still readable, so their history stays reachable. */
 export async function getCustomer(ownerId, id) {
   const customer = await Customer.findOne({ _id: id, owner: ownerId }).lean();
   if (!customer) {
@@ -51,9 +54,32 @@ export async function updateCustomer(ownerId, id, data) {
   return customer;
 }
 
-export async function deleteCustomer(ownerId, id) {
-  const customer = await Customer.findOneAndDelete({ _id: id, owner: ownerId }).lean();
+/**
+ * Archiving replaces deletion: the record and its invoices survive, the
+ * customer simply drops out of the active list. Restoring undoes it.
+ */
+export async function archiveCustomer(ownerId, id) {
+  const customer = await Customer.findOneAndUpdate(
+    { _id: id, owner: ownerId, archivedAt: null },
+    { archivedAt: new Date(), membershipStatus: 'cancelled' },
+    { new: true, runValidators: true }
+  ).lean();
+
   if (!customer) {
-    throw ApiError.notFound('Customer not found');
+    throw ApiError.notFound('Customer not found, or already archived');
   }
+  return customer;
+}
+
+export async function restoreCustomer(ownerId, id) {
+  const customer = await Customer.findOneAndUpdate(
+    { _id: id, owner: ownerId, archivedAt: { $ne: null } },
+    { archivedAt: null, membershipStatus: 'active' },
+    { new: true, runValidators: true }
+  ).lean();
+
+  if (!customer) {
+    throw ApiError.notFound('Customer not found, or not archived');
+  }
+  return customer;
 }

@@ -1,28 +1,22 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
 import { signup, login, refresh, logout, me } from '../controllers/auth.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
+import { createRateLimiter } from '../middleware/rateLimit.middleware.js';
 import { signupSchema, loginSchema } from '../utils/schemas/auth.schema.js';
 
 const router = express.Router();
 
-const loginLimiter = rateLimit({
+const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { message: 'Too many login attempts, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
-// Signup is cheap to script, so it gets its own ceiling to stop bulk
-// account creation from a single address.
-const signupLimiter = rateLimit({
+const signupLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: { message: 'Too many accounts created, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
 /**

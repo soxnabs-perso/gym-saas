@@ -10,7 +10,6 @@ function toPublicUser(user) {
     gymName: user.gymName,
     fullName: user.fullName,
     email: user.email,
-    role: user.role,
   };
 }
 
@@ -48,8 +47,6 @@ export async function signupUser({ gymName, fullName, email, password, rememberM
 export async function loginUser({ email, password, rememberMe }) {
   const user = await User.findOne({ email }).select('+passwordHash');
 
-  // Always run a comparison, even when the email is unknown, so response time
-  // does not reveal whether an account exists.
   const valid = user
     ? await user.comparePassword(password)
     : await User.compareDummyPassword(password);

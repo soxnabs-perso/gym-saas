@@ -1,0 +1,52 @@
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  padding: 1.5rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 2.2rem;
+}
+
+.auth-card .brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--color-amber);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.auth-card h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.auth-subtitle {
+  color: var(--color-mist);
+  font-size: 0.88rem;
+  margin-bottom: 1.6rem;
+}
+
+.auth-switch {
+  margin-top: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--color-mist);
+  text-align: center;
+}
+
+.auth-switch a {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+}

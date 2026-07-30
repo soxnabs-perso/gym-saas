@@ -1,5 +1,11 @@
-import { z } from 'zod';
-import { objectId, emptyStringToUndefined, paginationSchema } from './common.schema.js';
+import { object, string, number, date } from 'yup';
+import {
+  objectId,
+  optionalObjectId,
+  emptyStringToUndefined,
+  paginationFields,
+  trimmedString,
+} from './common.schema.js';
 
 export const INVOICE_STATUSES = ['pending', 'paid', 'overdue', 'cancelled'];
 
@@ -28,29 +34,42 @@ export const INVOICE_STATUSES = ['pending', 'paid', 'overdue', 'cancelled'];
  *         paidAt:        { type: string, format: date-time, nullable: true }
  */
 
-export const createInvoiceSchema = z
-  .object({
-    customerId: objectId,
-    // Rejecting NaN/Infinity here keeps them out of the revenue aggregation,
-    // where they would silently poison every dashboard total.
-    amount: z.coerce
-      .number()
-      .refine(Number.isFinite, 'Amount must be a number')
-      .nonnegative('Amount cannot be negative')
-      .max(1_000_000_000),
-    currency: z.string().trim().min(3).max(8).default('XOF'),
-    description: emptyStringToUndefined(z.string().trim().max(300).optional()),
-    dueDate: z.coerce.date('Due date is invalid'),
-  })
-  .strict();
+export const createInvoiceSchema = object({
+  customerId: objectId,
+  amount: number()
+    .typeError('Amount must be a number')
+    .min(0, 'Amount cannot be negative')
+    .max(1_000_000_000)
+    .required('Amount is required'),
+  currency: trimmedString().min(3).max(8).default('XOF'),
+  description: emptyStringToUndefined(trimmedString().max(300)),
+  dueDate: date().typeError('Due date is invalid').required('Due date is required'),
+}).noUnknown();
 
-export const updateInvoiceStatusSchema = z
-  .object({ status: z.enum(INVOICE_STATUSES) })
-  .strict();
+export const CANCELLED = 'cancelled';
 
-export const listInvoicesQuerySchema = paginationSchema
-  .extend({
-    customerId: objectId.optional(),
-    status: z.enum(INVOICE_STATUSES).optional(),
-  })
-  .strict();
+/** Ranges the dashboard can be scoped to. */
+export const SUMMARY_RANGES = ['month', 'quarter', 'year'];
+
+export const updateInvoiceStatusSchema = object({
+  status: string().oneOf(INVOICE_STATUSES).required('Status is required'),
+  cancellationReason: trimmedString()
+    .max(300)
+    .when('status', {
+      is: CANCELLED,
+      then: (schema) =>
+        schema.min(1, 'A reason is required').required('A reason is required when cancelling'),
+      otherwise: (schema) =>
+        schema.strip(),
+    }),
+}).noUnknown();
+
+export const summaryQuerySchema = object({
+  range: string().oneOf(SUMMARY_RANGES).default('month'),
+}).noUnknown();
+
+export const listInvoicesQuerySchema = object({
+  ...paginationFields,
+  customerId: optionalObjectId,
+  status: string().oneOf(INVOICE_STATUSES).optional(),
+}).noUnknown();

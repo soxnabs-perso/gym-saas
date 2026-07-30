@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { object, string, boolean } from 'yup';
+import { trimmedString, emailString, personName } from './common.schema.js';
 
 /**
  * @swagger
@@ -32,24 +33,29 @@ import { z } from 'zod';
  *         gymName:  { type: string }
  *         fullName: { type: string }
  *         email:    { type: string }
- *         role:     { type: string, enum: [owner, manager] }
  */
 
-export const signupSchema = z
-  .object({
-    gymName: z.string().trim().min(1, 'Gym name is required').max(120),
-    fullName: z.string().trim().min(1, 'Full name is required').max(120),
-    email: z.email('Email is invalid').toLowerCase(),
-    // Capped because bcrypt silently ignores input past 72 bytes.
-    password: z.string().min(8, 'Password must be at least 8 characters').max(72),
-    rememberMe: z.boolean().default(false),
-  })
-  .strict();
+const IPasswordSchema = string()
+  .matches(
+    /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
+    'Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one number and one special character')
+  .required();
 
-export const loginSchema = z
-  .object({
-    email: z.email('Email is invalid').toLowerCase(),
-    password: z.string().min(1, 'Password is required').max(72),
-    rememberMe: z.boolean().default(false),
-  })
-  .strict();
+
+const INameSchema = personName().required('Name is required');
+
+const IEmailSchema = emailString().required('Email is required');
+
+export const signupSchema = object({
+  gymName: trimmedString().min(1, 'Gym name is required').max(120).required('Gym name is required'),
+  fullName: INameSchema,
+  email: IEmailSchema,
+  password: IPasswordSchema,
+  rememberMe: boolean().default(false),
+}).noUnknown();
+
+export const loginSchema = object({
+  email: IEmailSchema,
+  password: string().required('Password is required'),
+  rememberMe: boolean().default(false),
+}).noUnknown();

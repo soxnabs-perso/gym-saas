@@ -1,8 +1,17 @@
-import { z } from 'zod';
-import { emptyStringToUndefined, paginationSchema } from './common.schema.js';
+import { object, string, number, boolean } from 'yup';
+import {
+  emptyStringToUndefined,
+  paginationFields,
+  trimmedString,
+  emailString,
+  personName,
+} from './common.schema.js';
 
 export const MEMBERSHIP_PLANS = ['monthly', 'quarterly', 'annual', 'pay_as_you_go'];
 export const MEMBERSHIP_STATUSES = ['active', 'paused', 'cancelled'];
+
+/** Billed per visit rather than per cycle, so it carries no recurring fee. */
+export const PAY_AS_YOU_GO = 'pay_as_you_go';
 
 /**
  * @swagger
@@ -10,12 +19,19 @@ export const MEMBERSHIP_STATUSES = ['active', 'paused', 'cancelled'];
  *   schemas:
  *     CustomerRequest:
  *       type: object
- *       required: [fullName]
+ *       required: [fullName, phone]
  *       properties:
- *         fullName:       { type: string, example: 'Moussa Ndiaye' }
- *         email:          { type: string, format: email }
- *         phone:          { type: string }
- *         membershipPlan: { type: string, enum: [monthly, quarterly, annual, pay_as_you_go] }
+ *         fullName:        { type: string, example: 'Moussa Ndiaye' }
+ *         phone:           { type: string, example: '+221 77 000 00 01' }
+ *         email:           { type: string, format: email, description: 'Optional' }
+ *         membershipPlan:  { type: string, enum: [monthly, quarterly, annual, pay_as_you_go] }
+ *         subscriptionFee:
+ *           type: number
+ *           minimum: 0
+ *           example: 15000
+ *           description: >
+ *             What the member pays per cycle of their plan. Required for every
+ *             plan except pay_as_you_go, which is billed per visit.
  *     Customer:
  *       type: object
  *       properties:
@@ -25,37 +41,50 @@ export const MEMBERSHIP_STATUSES = ['active', 'paused', 'cancelled'];
  *         phone:            { type: string }
  *         membershipPlan:   { type: string }
  *         membershipStatus: { type: string }
+ *         subscriptionFee:  { type: number }
  *         joinedAt:         { type: string, format: date-time }
  */
 
-export const createCustomerSchema = z
-  .object({
-    fullName: z.string().trim().min(1, 'Customer name is required').max(120),
-    // The form posts '' for untouched optional inputs. Left as-is those would
-    // collide on the sparse unique (owner, email) index the moment a manager
-    // added a second customer without an email.
-    email: emptyStringToUndefined(z.email('Email is invalid').toLowerCase().optional()),
-    phone: emptyStringToUndefined(z.string().trim().max(40).optional()),
-    membershipPlan: z.enum(MEMBERSHIP_PLANS).default('monthly'),
-  })
-  .strict();
+const optionalEmail = emptyStringToUndefined(emailString());
 
-export const updateCustomerSchema = z
-  .object({
-    fullName: z.string().trim().min(1).max(120).optional(),
-    email: emptyStringToUndefined(z.email('Email is invalid').toLowerCase().optional()),
-    phone: emptyStringToUndefined(z.string().trim().max(40).optional()),
-    membershipPlan: z.enum(MEMBERSHIP_PLANS).optional(),
-    membershipStatus: z.enum(MEMBERSHIP_STATUSES).optional(),
-  })
-  .strict()
-  .refine((data) => Object.keys(data).length > 0, {
-    message: 'Provide at least one field to update',
-  });
+const subscriptionFee = number()
+  .typeError('Subscription fee must be a number')
+  .min(0, 'Subscription fee cannot be negative')
+  .max(1_000_000_000);
 
-export const listCustomersQuerySchema = paginationSchema
-  .extend({
-    status: z.enum(MEMBERSHIP_STATUSES).optional(),
-    search: z.string().trim().max(120).optional(),
-  })
-  .strict();
+export const createCustomerSchema = object({
+  fullName: personName().required('Customer name is required'),
+  phone: trimmedString()
+    .min(1, 'Phone number is required')
+    .max(40)
+    .required('Phone number is required'),
+  email: optionalEmail,
+  membershipPlan: string().oneOf(MEMBERSHIP_PLANS).default('monthly'),
+  subscriptionFee: subscriptionFee.when('membershipPlan', {
+    is: (plan) => plan !== PAY_AS_YOU_GO,
+    then: (schema) => schema.required('Subscription fee is required for this plan'),
+    otherwise: (schema) => schema.optional(),
+  }),
+}).noUnknown();
+
+export const updateCustomerSchema = object({
+  fullName: personName().optional(),
+  phone: trimmedString().min(1, 'Phone number is required').max(40).optional(),
+  email: optionalEmail,
+  membershipPlan: string().oneOf(MEMBERSHIP_PLANS).optional(),
+  membershipStatus: string().oneOf(MEMBERSHIP_STATUSES).optional(),
+  subscriptionFee: subscriptionFee.optional(),
+})
+  .noUnknown()
+  .test(
+    'at-least-one-field',
+    'Provide at least one field to update',
+    (value) => Boolean(value) && Object.keys(value).length > 0
+  );
+
+export const listCustomersQuerySchema = object({
+  ...paginationFields,
+  status: string().oneOf(MEMBERSHIP_STATUSES).optional(),
+  search: trimmedString().max(120).optional(),
+  archived: boolean().default(false),
+}).noUnknown();

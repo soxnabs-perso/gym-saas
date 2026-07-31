@@ -130,7 +130,15 @@ export default function CustomerDetail() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div className="field">
               <label htmlFor="amount">Amount</label>
-              <input id="amount" type="number" min="0" step="1" value={form.amount} onChange={update('amount')} required />
+              <input
+                id="amount"
+                type="number"
+                min="0"
+                step="1"
+                value={form.amount}
+                onChange={update('amount')}
+                required
+              />
             </div>
             <div className="field">
               <label htmlFor="dueDate">Due date</label>
@@ -138,7 +146,12 @@ export default function CustomerDetail() {
             </div>
             <div className="field">
               <label htmlFor="description">Description (optional)</label>
-              <input id="description" value={form.description} onChange={update('description')} placeholder="e.g. Monthly membership" />
+              <input
+                id="description"
+                value={form.description}
+                onChange={update('description')}
+                placeholder="e.g. Monthly membership"
+              />
             </div>
           </div>
           <button className="btn btn-primary" type="submit" disabled={submitting}>

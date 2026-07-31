@@ -1,7 +1,6 @@
 /**
- * Shared JSDoc typedefs for the API payloads that cross module boundaries.
- * This is a plain CommonJS project, so these are documentation only — editors
- * pick them up for autocomplete, nothing is enforced at runtime.
+ * Shared JSDoc typedefs for the API payloads that cross module boundaries. This is a plain CommonJS project so these 
+ * are documentation only, editors pick them up for autocomplete, nothing is enforced at runtime.
  *
  * @typedef {Object} SessionUser
  * @property {string} id

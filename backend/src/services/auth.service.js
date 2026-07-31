@@ -14,9 +14,8 @@ function toPublicUser(user) {
 }
 
 /**
- * Mints an access token and persists the hash of a fresh refresh token.
- * Only the hash is stored, so a leaked database dump cannot be replayed
- * against the API.
+ * Mints an access token and persists the hash of a fresh refresh token. Only the hash is stored so a leaked database 
+ * dump cannot be replayed against the API.
  */
 async function issueSession(user, rememberMe) {
   const accessToken = signAccessToken(user._id.toString());
@@ -74,7 +73,7 @@ export async function refreshSession(token) {
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-  } catch (err) {
+  } catch (_err) {
     throw ApiError.unauthorized('Refresh token invalid or expired');
   }
 

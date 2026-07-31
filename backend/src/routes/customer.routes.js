@@ -96,9 +96,8 @@ router.patch(
  *   post:
  *     summary: Archive a customer
  *     description: >
- *       Customers are archived rather than deleted, so their invoice history
- *       survives and the action can be undone. Archived customers are hidden
- *       from the default list and cannot be invoiced until restored. There is
+ *       Customers are archived rather than deleted so their invoice history survives and the action can be undone. 
+ *       Archived customers are hidden from the default list and cannot be invoiced until restored. There is
  *       deliberately no delete endpoint.
  *     tags: [Customers]
  *     security: [{ bearerAuth: [] }]

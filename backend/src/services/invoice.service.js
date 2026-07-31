@@ -4,11 +4,9 @@ import Customer from '../models/Customer.js';
 import { ApiError } from '../utils/errors.js';
 
 /**
- * Promotes pending invoices whose due date has passed to `overdue`.
- *
- * Run before any read that reports status, so the stored value converges on
- * the truth without needing a scheduled job. Only `pending` invoices are
- * touched: paid and cancelled ones are settled, whatever their due date.
+ * Promotes pending invoices whose due date has passed to `overdue`. Run before any read that reports status so the 
+ * stored value converges on  the truth without needing a scheduled job. Only `pending` invoices are  touched: 
+ * paid and cancelled ones are settled, whatever their due date.
  */
 export async function syncOverdueInvoices(ownerId) {
   const result = await Invoice.updateMany(

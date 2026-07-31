@@ -89,7 +89,6 @@ describe('duplicate customer emails', () => {
 
     expect(clash.status).toBe(409);
     expect(clash.body.message).toContain('email');
-    // 'owner' is the tenant key of the compound index, never something typed.
     expect(clash.body.message).not.toContain('owner');
   });
 
@@ -178,7 +177,6 @@ describe('archiving instead of deleting', () => {
       .set(auth(token));
     expect(archived.status).toBe(200);
     expect(archived.body.customer.archivedAt).toBeTruthy();
-    // The stored record must not still claim to be an active membership.
     expect(archived.body.customer.membershipStatus).toBe('cancelled');
 
     const active = await request(app).get('/api/v1/customers').set(auth(token));

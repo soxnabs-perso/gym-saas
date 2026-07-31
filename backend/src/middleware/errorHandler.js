@@ -1,10 +1,10 @@
 import { ApiError } from '../utils/errors.js';
 
-function notFound(req, res, next) {
+function notFound(req, res, _next) {
   res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   if (process.env.NODE_ENV !== 'test') {
     console.error(err);
   }

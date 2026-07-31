@@ -38,7 +38,9 @@ import { trimmedString, emailString, personName } from './common.schema.js';
 const IPasswordSchema = string()
   .matches(
     /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
-    'Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one number and one special character')
+    'Password must be at least 8 characters long and contain at least one lowercase letter, ' +
+      'one uppercase letter, one number and one special character'
+  )
   .required();
 
 

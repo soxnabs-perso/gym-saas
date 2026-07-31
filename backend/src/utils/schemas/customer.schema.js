@@ -10,7 +10,7 @@ import {
 export const MEMBERSHIP_PLANS = ['monthly', 'quarterly', 'annual', 'pay_as_you_go'];
 export const MEMBERSHIP_STATUSES = ['active', 'paused', 'cancelled'];
 
-/** Billed per visit rather than per cycle, so it carries no recurring fee. */
+/** Billed per visit rather than per cycle so it carries no recurring fee. */
 export const PAY_AS_YOU_GO = 'pay_as_you_go';
 
 /**

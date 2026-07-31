@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
         setAccessToken(refreshRes.data.accessToken);
         const meRes = await api.get('/auth/me');
         setUser(meRes.data.user);
-      } catch (err) {
+      } catch (_err) {
         setAccessToken(null);
       } finally {
         setLoading(false);

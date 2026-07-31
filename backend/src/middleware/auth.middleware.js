@@ -12,7 +12,7 @@ function protect(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.userId = decoded.sub;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({ message: 'Session expired, please log in again' });
   }
 }

@@ -2,9 +2,8 @@ import Customer from '../models/Customer.js';
 import { ApiError } from '../utils/errors.js';
 
 /**
- * Every query is keyed on `owner`, so one gym can never read or mutate
- * another's records — the isolation is enforced in the query itself rather
- * than filtered out afterwards.
+ * Every query is keyed on `owner` so one gym can never read or mutate another's records the isolation is enforced in 
+ * the query itself rather than filtered out afterwards.
  */
 export async function listCustomers(ownerId, { page, limit, status, search, archived }) {
   const filter = { owner: ownerId };
@@ -28,7 +27,7 @@ export async function listCustomers(ownerId, { page, limit, status, search, arch
   return { customers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
 }
 
-/** Archived customers are still readable, so their history stays reachable. */
+/** Archived customers are still readable so their history stays reachable. */
 export async function getCustomer(ownerId, id) {
   const customer = await Customer.findOne({ _id: id, owner: ownerId }).lean();
   if (!customer) {

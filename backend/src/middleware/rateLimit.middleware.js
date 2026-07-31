@@ -1,8 +1,8 @@
-/*
-  * Rate limiting middleware.
-  * Uses express-rate-limit under the hood but disables it in test mode so that tests can run without worrying about 
-  * hitting the limit.
-  */
+/**
+ * Rate limiting middleware.
+ * Uses express-rate-limit under the hood but disables it in test mode so that tests can run without worrying about
+ * hitting the limit.
+ */
 
 import rateLimit from 'express-rate-limit';
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../api/axios';
+import api, { newIdempotencyKey } from '../api/axios';
 import InvoiceActions from '../components/InvoiceActions';
 import { describeApiError } from '../api/errors';
 import ErrorBanner from '../components/ErrorBanner';
@@ -26,6 +26,12 @@ export default function CustomerDetail() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ amount: '', description: '', dueDate: todayPlus(7) });
+
+  /**
+   * Held for as long as the form is open so a failed submit can be retried without raising a second invoice. It's
+   * replaced only once an invoice has actually been created.
+   */
+  const [invoiceKey, setInvoiceKey] = useState(newIdempotencyKey);
 
   async function loadData() {
     setLoading(true);
@@ -61,13 +67,18 @@ export default function CustomerDetail() {
     setSubmitting(true);
     setMessages([]);
     try {
-      await api.post('/invoices', {
-        customerId: id,
-        amount: Number(form.amount),
-        description: form.description,
-        dueDate: form.dueDate,
-      });
+      await api.post(
+        '/invoices',
+        {
+          customerId: id,
+          amount: Number(form.amount),
+          description: form.description,
+          dueDate: form.dueDate,
+        },
+        { headers: { 'Idempotency-Key': invoiceKey } }
+      );
       setForm({ amount: '', description: '', dueDate: todayPlus(7) });
+      setInvoiceKey(newIdempotencyKey());
       setShowForm(false);
       await loadData();
     } catch (err) {

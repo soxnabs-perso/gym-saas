@@ -3,11 +3,11 @@ import {
   listInvoices,
   createInvoice,
   updateInvoiceStatus,
-  deleteInvoice,
   dashboardSummary,
 } from '../controllers/invoice.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
+import { idempotent } from '../middleware/idempotency.middleware.js';
 import {
   createInvoiceSchema,
   updateInvoiceStatusSchema,
@@ -76,8 +76,18 @@ router.get('/dashboard/summary', validate({ query: summaryQuerySchema }), dashbo
  *       200: { description: Paginated list of invoices }
  *   post:
  *     summary: Generate an invoice for a customer
+ *     description: >
+ *       Send an `Idempotency-Key` header to make the call safe to retry. A repeat of the same key and body replays the
+ *       original response with `Idempotency-Replayed: true` rather than raising a second invoice. The header is
+ *       optional; without it a retry creates another invoice, as an ordinary POST does.
  *     tags: [Invoices]
  *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: header
+ *         name: Idempotency-Key
+ *         required: false
+ *         schema: { type: string, minLength: 8, maxLength: 255 }
+ *         description: Unique per logical request, e.g. a UUID. Keys expire after 24 hours.
  *     requestBody:
  *       required: true
  *       content:
@@ -87,15 +97,25 @@ router.get('/dashboard/summary', validate({ query: summaryQuerySchema }), dashbo
  *       201: { description: Invoice created }
  *       400: { description: Validation failed }
  *       404: { description: Customer not found }
+ *       409: { description: An identical request is still in flight; retry }
+ *       422: { description: This key was already used for a different request }
  */
 router.get('/', validate({ query: listInvoicesQuerySchema }), listInvoices);
-router.post('/', validate({ body: createInvoiceSchema }), createInvoice);
+router.post(
+  '/',
+  validate({ body: createInvoiceSchema }),
+  idempotent('POST /invoices'),
+  createInvoice
+);
 
 /**
  * @swagger
  * /invoices/{id}/status:
  *   patch:
  *     summary: Change an invoice's status
+ *     description: >
+ *       `overdue` is not settable. It is derived from `dueDate` each time an unpaid invoice is read, so writing it
+ *       would leave the stored value contradicting the date. Set `pending` and let the due date decide.
  *     tags: [Invoices]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -108,7 +128,7 @@ router.post('/', validate({ body: createInvoiceSchema }), createInvoice);
  *             type: object
  *             required: [status]
  *             properties:
- *               status: { type: string, enum: [pending, paid, overdue, cancelled] }
+ *               status: { type: string, enum: [pending, paid, cancelled] }
  *               cancellationReason:
  *                 type: string
  *                 maxLength: 300
@@ -123,19 +143,5 @@ router.patch(
   validate({ params: idParamSchema, body: updateInvoiceStatusSchema }),
   updateInvoiceStatus
 );
-
-/**
- * @swagger
- * /invoices/{id}:
- *   delete:
- *     summary: Delete an invoice
- *     tags: [Invoices]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     responses:
- *       204: { description: Deleted }
- */
-router.delete('/:id', validate({ params: idParamSchema }), deleteInvoice);
 
 export default router;

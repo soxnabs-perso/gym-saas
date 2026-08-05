@@ -1,6 +1,16 @@
 import { ApiError } from '../utils/errors.js';
+import { allowedMethodsFor } from '../utils/allowedMethods.js';
 
 function notFound(req, res, _next) {
+  const allowed = allowedMethodsFor(req.app, req.path);
+
+  if (allowed.length) {
+    res.set('Allow', allowed.join(', '));
+    return res.status(405).json({
+      message: `${req.method} is not allowed here. Allowed: ${allowed.join(', ')}`,
+    });
+  }
+
   res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
 }
 

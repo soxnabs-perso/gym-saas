@@ -16,6 +16,17 @@ export function getAccessToken() {
   return accessToken;
 }
 
+/**
+ * A key identifying one logical write so the server can tell a retry apart from a second request.
+ * Generate it once when the user starts an action, not once per attempt: reusing the key is the whole point since a
+ * fresh key on every click would look like a new request and defeat the protection. `randomUUID` needs a secure
+ * context so there is a fallback for plain http origins.
+ */
+export function newIdempotencyKey() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 api.interceptors.request.use((config) => {
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;

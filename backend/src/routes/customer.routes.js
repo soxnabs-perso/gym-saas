@@ -105,7 +105,8 @@ router.patch(
  *       - { in: path, name: id, required: true, schema: { type: string } }
  *     responses:
  *       200: { description: The archived customer }
- *       404: { description: Not found, or already archived }
+ *       404: { description: No such customer }
+ *       409: { description: Already archived }
  * /customers/{id}/restore:
  *   post:
  *     summary: Restore an archived customer
@@ -115,7 +116,8 @@ router.patch(
  *       - { in: path, name: id, required: true, schema: { type: string } }
  *     responses:
  *       200: { description: The restored customer }
- *       404: { description: Not found, or not archived }
+ *       404: { description: No such customer }
+ *       409: { description: Not archived }
  */
 router.post('/:id/archive', validate({ params: idParamSchema }), archiveCustomer);
 router.post('/:id/restore', validate({ params: idParamSchema }), restoreCustomer);

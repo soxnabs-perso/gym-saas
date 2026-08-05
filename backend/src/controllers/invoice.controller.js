@@ -19,10 +19,10 @@ export async function updateInvoiceStatus(req, res) {
   return res.json({ invoice });
 }
 
-export async function deleteInvoice(req, res) {
-  await invoiceService.deleteInvoice(req.userId, req.validated.params.id);
-  return res.status(204).send();
-}
+/**
+ * There is deliberately no delete handler. Cancelling an invoice with a reason is the one way to retire it so the
+ * record and its history survive. `DELETE /invoices/:id` answers 405 with the methods it does accept.
+ */
 
 export async function dashboardSummary(req, res) {
   const summary = await invoiceService.getDashboardSummary(req.userId, req.validated.query);

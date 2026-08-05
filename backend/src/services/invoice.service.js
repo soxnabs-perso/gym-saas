@@ -5,23 +5,35 @@ import { ApiError } from '../utils/errors.js';
 
 /**
  * Promotes pending invoices whose due date has passed to `overdue`. Run before any read that reports status so the 
- * stored value converges on  the truth without needing a scheduled job. Only `pending` invoices are  touched: 
- * paid and cancelled ones are settled, whatever their due date.
+ * stored value converges on the truth. Only `pending` invoices are touched: paid and cancelled ones are settled
+ *  whatever their due date.
  */
-export async function syncOverdueInvoices(ownerId) {
-  const result = await Invoice.updateMany(
-    { owner: ownerId, status: 'pending', dueDate: { $lte: new Date() } },
-    { status: 'overdue' }
-  );
-  return result.modifiedCount ?? 0;
+export function effectiveStatus(invoice, now = new Date()) {
+  if (invoice.status === 'pending' && invoice.dueDate && new Date(invoice.dueDate) <= now) {
+    return 'overdue';
+  }
+  return invoice.status;
+}
+
+const withEffectiveStatus = (invoice, now) =>
+  invoice && { ...invoice, status: effectiveStatus(invoice, now) };
+
+function statusFilter(status, now) {
+  if (status === 'overdue') {
+    return { $or: [{ status: 'overdue' }, { status: 'pending', dueDate: { $lte: now } }] };
+  }
+  if (status === 'pending') {
+    return { status: 'pending', dueDate: { $gt: now } };
+  }
+  return { status };
 }
 
 export async function listInvoices(ownerId, { page, limit, customerId, status }) {
-  await syncOverdueInvoices(ownerId);
-
+  const now = new Date();
   const filter = { owner: ownerId };
+
   if (customerId) filter.customer = customerId;
-  if (status) filter.status = status;
+  if (status) Object.assign(filter, statusFilter(status, now));
 
   const [invoices, total] = await Promise.all([
     Invoice.find(filter)
@@ -33,7 +45,10 @@ export async function listInvoices(ownerId, { page, limit, customerId, status })
     Invoice.countDocuments(filter),
   ]);
 
-  return { invoices, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  return {
+    invoices: invoices.map((invoice) => withEffectiveStatus(invoice, now)),
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+  };
 }
 
 export async function createInvoice(ownerId, { customerId, amount, currency, description, dueDate }) {
@@ -46,16 +61,21 @@ export async function createInvoice(ownerId, { customerId, amount, currency, des
     throw ApiError.badRequest('This customer is archived; restore them before invoicing');
   }
 
-  return Invoice.create({
+  /**
+   * Always stored as `pending` even when the due date is already past.
+   */
+  const created = await Invoice.create({
     owner: ownerId,
     customer: customer._id,
     invoiceNumber: Invoice.generateInvoiceNumber(),
     amount,
     currency,
     description,
-    status: new Date(dueDate) <= new Date() ? 'overdue' : 'pending',
+    status: 'pending',
     dueDate,
   });
+
+  return withEffectiveStatus(created.toObject());
 }
 
 export async function updateInvoiceStatus(ownerId, id, { status, cancellationReason }) {
@@ -80,20 +100,9 @@ export async function updateInvoiceStatus(ownerId, id, { status, cancellationRea
   if (!invoice) {
     throw ApiError.notFound('Invoice not found');
   }
-  return invoice;
+  return withEffectiveStatus(invoice);
 }
 
-export async function deleteInvoice(ownerId, id) {
-  const invoice = await Invoice.findOneAndDelete({ _id: id, owner: ownerId }).lean();
-  if (!invoice) {
-    throw ApiError.notFound('Invoice not found');
-  }
-}
-
-/**
- * Start of the calendar period containing `now`, and the start of the next
- * one. Quarters are calendar quarters: Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec.
- */
 export function resolveRange(range, now = new Date()) {
   const from = new Date(now);
   from.setHours(0, 0, 0, 0);
@@ -117,8 +126,6 @@ export function resolveRange(range, now = new Date()) {
 }
 
 export async function getDashboardSummary(ownerId, { range }) {
-  await syncOverdueInvoices(ownerId);
-
   const owner = new mongoose.Types.ObjectId(ownerId);
   const { from, to } = resolveRange(range);
 
@@ -128,6 +135,7 @@ export async function getDashboardSummary(ownerId, { range }) {
       { $match: { owner, status: 'paid', paidAt: { $gte: from, $lt: to } } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
+
     Invoice.aggregate([
       {
         $match: {

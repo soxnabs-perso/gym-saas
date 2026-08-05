@@ -9,6 +9,8 @@ import {
 
 export const INVOICE_STATUSES = ['pending', 'paid', 'overdue', 'cancelled'];
 
+export const SETTABLE_INVOICE_STATUSES = ['pending', 'paid', 'cancelled'];
+
 /**
  * @swagger
  * components:
@@ -52,7 +54,7 @@ export const CANCELLED = 'cancelled';
 export const SUMMARY_RANGES = ['month', 'quarter', 'year'];
 
 export const updateInvoiceStatusSchema = object({
-  status: string().oneOf(INVOICE_STATUSES).required('Status is required'),
+  status: string().oneOf(SETTABLE_INVOICE_STATUSES).required('Status is required'),
   cancellationReason: trimmedString()
     .max(300)
     .when('status', {

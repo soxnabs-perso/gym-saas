@@ -156,7 +156,7 @@ describe('editing a customer', () => {
 });
 
 describe('archiving instead of deleting', () => {
-  it('offers no delete endpoint', async () => {
+  it('offers no delete endpoint and says so with the methods it does accept', async () => {
     const token = await signupAndGetToken('nodelete@test.com');
     const created = await createCustomer(token);
 
@@ -164,7 +164,9 @@ describe('archiving instead of deleting', () => {
       .delete(`/api/v1/customers/${created.body.customer._id}`)
       .set(auth(token));
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(405);
+    expect(res.headers.allow).toContain('PATCH');
+    expect(res.headers.allow).not.toContain('DELETE');
   });
 
   it('archives a customer, hiding them from the default list', async () => {
@@ -217,7 +219,7 @@ describe('archiving instead of deleting', () => {
     await request(app).post(`/api/v1/customers/${id}/archive`).set(auth(token));
 
     const again = await request(app).post(`/api/v1/customers/${id}/archive`).set(auth(token));
-    expect(again.status).toBe(404);
+    expect(again.status).toBe(409);
 
     const invoice = await request(app)
       .post('/api/v1/invoices')

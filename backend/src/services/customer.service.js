@@ -57,28 +57,34 @@ export async function updateCustomer(ownerId, id, data) {
  * Archiving replaces deletion: the record and its invoices survive, the
  * customer simply drops out of the active list. Restoring undoes it.
  */
-export async function archiveCustomer(ownerId, id) {
+async function transition(ownerId, id, { guard, update, conflict }) {
   const customer = await Customer.findOneAndUpdate(
-    { _id: id, owner: ownerId, archivedAt: null },
-    { archivedAt: new Date(), membershipStatus: 'cancelled' },
+    { _id: id, owner: ownerId, ...guard },
+    update,
     { new: true, runValidators: true }
   ).lean();
 
-  if (!customer) {
-    throw ApiError.notFound('Customer not found, or already archived');
+  if (customer) return customer;
+
+  const exists = await Customer.exists({ _id: id, owner: ownerId });
+  if (exists) {
+    throw ApiError.conflict(conflict);
   }
-  return customer;
+  throw ApiError.notFound('Customer not found');
+}
+
+export async function archiveCustomer(ownerId, id) {
+  return transition(ownerId, id, {
+    guard: { archivedAt: null },
+    update: { archivedAt: new Date(), membershipStatus: 'cancelled' },
+    conflict: 'This customer is already archived',
+  });
 }
 
 export async function restoreCustomer(ownerId, id) {
-  const customer = await Customer.findOneAndUpdate(
-    { _id: id, owner: ownerId, archivedAt: { $ne: null } },
-    { archivedAt: null, membershipStatus: 'active' },
-    { new: true, runValidators: true }
-  ).lean();
-
-  if (!customer) {
-    throw ApiError.notFound('Customer not found, or not archived');
-  }
-  return customer;
+  return transition(ownerId, id, {
+    guard: { archivedAt: { $ne: null } },
+    update: { archivedAt: null, membershipStatus: 'active' },
+    conflict: 'This customer is not archived',
+  });
 }

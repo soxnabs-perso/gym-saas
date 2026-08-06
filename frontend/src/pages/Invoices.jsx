@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import InvoiceActions from '../components/InvoiceActions';
 import { describeApiError } from '../api/errors';
 import ErrorBanner from '../components/ErrorBanner';
+import Pagination from '../components/Pagination';
+import usePagedList from '../hooks/usePagedList';
 
 const STATUS_LABELS = { pending: 'Pending', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
 
@@ -12,26 +13,25 @@ function formatAmount(value, currency = 'XOF') {
 }
 
 export default function Invoices() {
-  const [invoices, setInvoices] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState([]);
+  const {
+    items: invoices,
+    pagination,
+    loading,
+    messages,
+    setMessages,
+    filters,
+    setFilter,
+    page,
+    goToPage,
+    reload: loadInvoices,
+  } = usePagedList({
+    url: '/invoices',
+    itemsKey: 'invoices',
+    filterDefaults: { status: '' },
+    errorFallback: 'Could not load invoices',
+  });
 
-  async function loadInvoices() {
-    setLoading(true);
-    try {
-      const res = await api.get('/invoices', { params: statusFilter ? { status: statusFilter } : {} });
-      setInvoices(res.data.invoices);
-    } catch (err) {
-      setMessages(describeApiError(err, 'Could not load invoices').messages);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadInvoices();
-  }, [statusFilter]);
+  const statusFilter = filters.status;
 
   async function markPaid(id) {
     try {
@@ -57,7 +57,8 @@ export default function Invoices() {
         <h1>Invoices</h1>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filter by status"
+          onChange={(e) => setFilter('status', e.target.value)}
           style={{ padding: '0.5rem 0.7rem', borderRadius: '4px', border: '1px solid #d7d9d4' }}
         >
           <option value="">All statuses</option>
@@ -77,6 +78,7 @@ export default function Invoices() {
         ) : invoices.length === 0 ? (
           <div className="empty-state">No invoices to show. Generate one from a customer's page.</div>
         ) : (
+          <>
           <table>
             <thead>
               <tr>
@@ -113,6 +115,14 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            pagination={pagination}
+            page={page}
+            onGoToPage={goToPage}
+            noun="invoice"
+            disabled={loading}
+          />
+          </>
         )}
       </div>
     </div>

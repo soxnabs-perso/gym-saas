@@ -56,11 +56,16 @@ describe('Customers list', () => {
     expect(screen.getByText(/\+221770000001/)).toBeInTheDocument();
   });
 
-  it('asks for active customers by default', async () => {
+  it('asks for the first page of active customers by default', async () => {
     renderPage();
 
     await waitFor(() =>
-      expect(api.get).toHaveBeenCalledWith('/customers', { params: { archived: false } })
+      expect(api.get).toHaveBeenCalledWith(
+        '/customers',
+        expect.objectContaining({
+          params: expect.objectContaining({ archived: false, page: 1, limit: expect.any(Number) }),
+        })
+      )
     );
   });
 
@@ -223,7 +228,10 @@ describe('Archiving', () => {
     await userEvent.click(screen.getByRole('button', { name: /view archived/i }));
 
     await waitFor(() =>
-      expect(api.get).toHaveBeenLastCalledWith('/customers', { params: { archived: true } })
+      expect(api.get).toHaveBeenLastCalledWith(
+        '/customers',
+        expect.objectContaining({ params: expect.objectContaining({ archived: true }) })
+      )
     );
 
     expect(await screen.findByRole('heading', { name: /archived customers/i })).toBeInTheDocument();

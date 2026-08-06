@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { describeApiError } from '../api/errors';
 import ErrorBanner from '../components/ErrorBanner';
+import Pagination from '../components/Pagination';
+import usePagedList from '../hooks/usePagedList';
 
 const PLAN_LABELS = {
   monthly: 'Monthly',
@@ -37,31 +39,31 @@ function formatAmount(value, currency = 'XOF') {
 }
 
 export default function Customers() {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState([]);
+  const {
+    items: customers,
+    pagination,
+    loading,
+    messages,
+    setMessages,
+    filters,
+    setFilter,
+    page,
+    goToPage,
+    reload: loadCustomers,
+  } = usePagedList({
+    url: '/customers',
+    itemsKey: 'customers',
+    filterDefaults: { archived: false },
+    errorFallback: 'Could not load customers',
+  });
+
+  const showArchived = filters.archived;
+
   const [fieldErrors, setFieldErrors] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [showArchived, setShowArchived] = useState(false);
-
-  async function loadCustomers() {
-    setLoading(true);
-    try {
-      const res = await api.get('/customers', { params: { archived: showArchived } });
-      setCustomers(res.data.customers);
-    } catch (err) {
-      setMessages(describeApiError(err, 'Could not load customers').messages);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadCustomers();
-  }, [showArchived]);
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -162,7 +164,7 @@ export default function Customers() {
       <div className="page-header">
         <h1>{showArchived ? 'Archived customers' : 'Customers'}</h1>
         <div style={{ display: 'flex', gap: '0.6rem' }}>
-          <button className="btn btn-ghost" onClick={() => setShowArchived((v) => !v)}>
+          <button className="btn btn-ghost" onClick={() => setFilter('archived', !showArchived)}>
             {showArchived ? 'View active' : 'View archived'}
           </button>
           {!showArchived &&
@@ -266,6 +268,7 @@ export default function Customers() {
               : 'No customers yet. Add your first member to get started.'}
           </div>
         ) : (
+          <>
           <table>
             <thead>
               <tr>
@@ -315,6 +318,14 @@ export default function Customers() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            pagination={pagination}
+            page={page}
+            onGoToPage={goToPage}
+            noun="customer"
+            disabled={loading}
+          />
+          </>
         )}
       </div>
     </div>
